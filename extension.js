@@ -6,60 +6,98 @@ const axios = require('axios');
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-    console.log('CodePod is now active');
+    console.log('CodePod activation started');
+    vscode.window.showInformationMessage('CodePod is activating');
 
-    // Register the command to send the file to Gemini
-    let disposable = vscode.commands.registerCommand('codepod.sendFile', async function () {
-        try {
-            // Get the active text editor
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                vscode.window.showErrorMessage('No active editor found');
-                return;
-            }
+    process.nextTick(() => console.log('CodePod activation process.nextTick executed'));
 
-            // Get the entire document text
-            const document = editor.document;
-            const text = document.getText();
-            
-            // Check if the text is empty
-            if (!text) {
-                vscode.window.showErrorMessage('File is empty');
-                return;
-            }
+    
+    try {
+        // Register the command to send the file to Gemini
+        const disposable = vscode.commands.registerCommand('codepod.sendFile', handleSendFile);
+        
+        // Add the command to subscriptions
+        context.subscriptions.push(disposable);
+        
+        // Log successful registration
+        console.log('CodePod command registered successfully: codepod.sendFile');
+        
+        // Create a status bar item to show the extension is active
+        const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        statusBarItem.text = "$(broadcast) CodePod";
+        statusBarItem.tooltip = "Send current file to Gemini";
+        statusBarItem.command = 'codepod.sendFile';
+        statusBarItem.show();
+        
+        // Add status bar item to subscriptions
+        context.subscriptions.push(statusBarItem);
+        
+        // Show notification that extension is ready
+        vscode.window.showInformationMessage('CodePod extension is ready');
+    } catch (error) {
+        // Log any errors during activation
+        console.error('Error activating CodePod:', error);
+        vscode.window.showErrorMessage(`CodePod activation error: ${error.message}`);
+    }
 
-            // Get the API key from settings
-            const config = vscode.workspace.getConfiguration('codepod');
-            const apiKey = config.get('apiKey');
-            
-            if (!apiKey) {
-                vscode.window.showErrorMessage('Gemini API key not found. Please add it in settings.');
-                vscode.commands.executeCommand('workbench.action.openSettings', 'codepod.apiKey');
-                return;
-            }
-
-            // Show progress notification
-            vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: "Sending to Gemini",
-                cancellable: false
-            }, async (progress) => {
-                progress.report({ message: "Sending file content..." });
-                
-                // Send the content to Gemini API
-                const response = await sendToGemini(text, apiKey);
-                
-                // Show the response in a new tab
-                showGeminiResponse(response);
-                
-                return Promise.resolve();
-            });
-        } catch (error) {
-            vscode.window.showErrorMessage(`Error: ${error.message}`);
+    console.log('CodePod activation function completed execution');
+    return context;
+}
+/**
+ * Handler for the sendFile command
+ */
+async function handleSendFile() {
+    try {
+        // Log command execution
+        console.log('Executing codepod.sendFile command');
+        
+        // Get the active text editor
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found');
+            return;
         }
-    });
 
-    context.subscriptions.push(disposable);
+        // Get the entire document text
+        const document = editor.document;
+        const text = document.getText();
+        
+        // Check if the text is empty
+        if (!text) {
+            vscode.window.showErrorMessage('File is empty');
+            return;
+        }
+
+        // Get the API key from settings
+        const config = vscode.workspace.getConfiguration('codepod');
+        const apiKey = config.get('apiKey');
+        
+        if (!apiKey) {
+            vscode.window.showErrorMessage('Gemini API key not found. Please add it in settings.');
+            vscode.commands.executeCommand('workbench.action.openSettings', 'codepod.apiKey');
+            return;
+        }
+
+        // Show progress notification
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Sending to Gemini",
+            cancellable: false
+        }, async (progress) => {
+            progress.report({ message: "Sending file content..." });
+            
+            // Send the content to Gemini API
+            const response = await sendToGemini(text, apiKey);
+            
+            // Show the response in a new tab
+            await showGeminiResponse(response);
+            
+            return Promise.resolve();
+        });
+    } catch (error) {
+        console.error('Error executing sendFile command:', error);
+        vscode.window.showErrorMessage(`Error: ${error.message}`);
+    }
 }
 
 /**
@@ -70,6 +108,9 @@ function activate(context) {
  */
 async function sendToGemini(text, apiKey) {
     try {
+        // Log API request (without sensitive data)
+        console.log('Sending request to Gemini API');
+        
         // Gemini API endpoint
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         
@@ -88,6 +129,9 @@ async function sendToGemini(text, apiKey) {
         
         // Send request to Gemini
         const response = await axios.post(url, data);
+        
+        // Log API response (structure only)
+        console.log('Received response from Gemini API');
         
         // Extract and return the response text
         if (response.data && 
@@ -121,13 +165,12 @@ async function showGeminiResponse(response) {
         // Show the document
         await vscode.window.showTextDocument(document, { preview: false });
     } catch (error) {
+        console.error('Error displaying response:', error);
         vscode.window.showErrorMessage(`Error displaying response: ${error.message}`);
     }
 }
 
-function deactivate() {}
-
+// Export only once at the end of the file
 module.exports = {
-    activate,
-    deactivate
-};
+    activate
+}
