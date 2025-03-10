@@ -52,8 +52,8 @@ function activate(context) {
             return;
         }
         const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const prompt = `You are a podcast script writer that is extremely adept in coding. You understand nuances in code and areas where code issues could occur. You will make a podcast script about the code given and will add in natural umms, ahhs, etc. Also, you will add in interjections that are natural in a podcast. Lastly, you will give a high level overview of the code and then go into the nitty gritty details to find potential issues. Make sure that one host is questioning the other to come up with responses as to why things may work or not work.\n\nCode:\n\`\`\`\n${fileContent}\n\`\`\``;
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const prompt = `You are a podcast script writer that is extremely adept in coding. You understand nuances in code and areas where code issues could occur. You will make a podcast script about the code given and will add in natural umms, ahhs, etc. Also, you will add in interjections that are natural in a podcast. Lastly, you will give a high level overview of the code and then go into the nitty gritty details to find potential issues. Make sure that one host is questioning the other to come up with responses as to why things may work or not work. Lastly, write out only the script, with no music interludes and make each line either start with 'Host1:' or 'Host2:' \n\nCode:\n\`\`\`\n${fileContent}\n\`\`\``;
         try {
             const result = await model.generateContent(prompt);
             const response = result.response;
