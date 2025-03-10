@@ -71,6 +71,7 @@ async function handleSendFile() {
         // Get the API key from settings
         const config = vscode.workspace.getConfiguration('codepod');
         const apiKey = config.get('apiKey');
+        const systemPrompt = config.get('systemPrompt') || 'You are a helpful coding assistant. Analyze the following code and provide insights, improvements, or answer questions about it.';
         
         if (!apiKey) {
             vscode.window.showErrorMessage('Gemini API key not found. Please add it in settings.');
@@ -87,7 +88,9 @@ async function handleSendFile() {
             progress.report({ message: "Sending file content..." });
             
             // Send the content to Gemini API
-            const response = await sendToGemini(text, apiKey);
+            const response = await sendToGemini(text, apiKey, systemPrompt);
+
+            console.log(response);
             
             // Show the response in a new tab
             await showGeminiResponse(response);
@@ -104,9 +107,10 @@ async function handleSendFile() {
  * Sends the text to Gemini API
  * @param {string} text - The text content to send
  * @param {string} apiKey - The Gemini API key
+ * @param {string} systemPrompt - The system prompt to send before the content
  * @returns {Promise<string>} - The response from Gemini
  */
-async function sendToGemini(text, apiKey) {
+async function sendToGemini(text, apiKey, systemPrompt) {
     try {
         // Log API request (without sensitive data)
         console.log('Sending request to Gemini API');
@@ -114,10 +118,19 @@ async function sendToGemini(text, apiKey) {
         // Gemini API endpoint
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         
-        // Request body
+        // Request body with system prompt
         const data = {
             contents: [
                 {
+                    role: "system",
+                    parts: [
+                        {
+                            text: systemPrompt
+                        }
+                    ]
+                },
+                {
+                    role: "user",
                     parts: [
                         {
                             text: text

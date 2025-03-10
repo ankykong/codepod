@@ -1,5 +1,7 @@
 .vscode/**
 .vscode-test/**
 node_modules/**
+!node_modules/axios/**
 .gitignore
 vsc-extension-quickstart.md
+src/** */
